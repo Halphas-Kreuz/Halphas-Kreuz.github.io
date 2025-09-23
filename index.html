@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live2D (Cubism 2) on GitHub Pages</title>
+  <meta name="description" content="A minimal Live2D Cubism 2 integration for GitHub Pages." />
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --fg: #cfd8dc;
+      --muted: #90a4ae;
+      --accent: #80cbc4;
+    }
+    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .wrap { position: relative; min-height: 100vh; }
+    header { padding: 20px; text-align: center; }
+    header h1 { margin: 0 0 6px; font-weight: 600; font-size: 20px; }
+    header p { margin: 0; color: var(--muted); }
+
+    /* The Live2D container sits fixed in the corner */
+    #l2d-container { position: fixed; right: 12px; bottom: 12px; width: 320px; height: 480px; z-index: 10; }
+
+    /* Simple control panel */
+    #controls { position: fixed; left: 12px; bottom: 12px; display: grid; grid-auto-flow: column; gap: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); padding: 10px 12px; border-radius: 12px; backdrop-filter: blur(6px); }
+    button, select { background: #11161a; color: var(--fg); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 10px; font: inherit; cursor: pointer; }
+    button:hover, select:hover { border-color: var(--accent); }
+    a { color: var(--accent); text-decoration: none; }
+    footer { position: absolute; bottom: 0; width: 100%; text-align: center; color: var(--muted); padding: 16px; }
+    .hint { color: var(--muted); margin-top: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Live2D Demo (Cubism 2)</h1>
+      <p>Self-hosted on GitHub Pages. Tap / click the model. Drag to move.</p>
+      <p class="hint">Place your assets as <code>assets/your_model/</code> and update the <code>jsonPath</code> below if needed.</p>
+    </header>
+
+    <!-- Live2D mount point -->
+    <div id="l2d-container"></div>
+
+    <!-- Controls (optional) -->
+    <div id="controls">
+      <button id="btn-reload" title="Reload the model">Reload</button>
+      <label>
+        DPR
+        <select id="dpr">
+          <option value="1">1x</option>
+          <option value="2" selected>2x</option>
+          <option value="device">Device</option>
+        </select>
+      </label>
+    </div>
+
+    <footer>
+      <small>
+        Using <a href="https://unpkg.com/live2d-widget@3.1.4/" rel="noreferrer noopener">live2d-widget@3.1.4</a> (legacy Cubism 2 runtime)
+      </small>
+    </footer>
+  </div>
+
+  <!--
+    Folder layout expected (relative to this HTML file):
+
+    ./assets/your_model/
+      ├─ model.json            (Cubism 2)
+      ├─ model.moc             (Cubism 2 core)
+      ├─ model.512/            (or model.1024/, as referenced by model.json)
+      ├─ textures/             (if your package uses this folder)
+      └─ motions/              (motion JSON & resources)
+
+    If your files use different names or folders, adjust the jsonPath and make sure
+    the paths inside model.json remain valid relative to model.json itself.
+  -->
+
+  <script>
+    // Basic feature guard
+    if (!('fetch' in window)) {
+      alert('Your browser is too old for this demo. Please use a modern browser.');
+    }
+  </script>
+
+  <!-- Legacy Live2D widget (works with Cubism 2: .moc + model.json) -->
+  <script src="https://unpkg.com/live2d-widget@3.1.4/lib/L2Dwidget.min.js"></script>
+  <script>
+    (function(){
+      // --- Configuration you may edit ---
+      // Point this to your actual Cubism 2 model.json path.
+      var MODEL_JSON = 'assets/your_model/model.json';
+
+      // Desired initial size of the canvas (pixels). The widget will scale as needed.
+      var WIDTH = 320;
+      var HEIGHT = 480;
+
+      // Choose device pixel ratio: 1, 2, or 'device' (actual devicePixelRatio)
+      function getDPRChoice() {
+        var sel = document.getElementById('dpr').value;
+        if (sel === 'device') return Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+        return parseInt(sel, 10) || 1;
+      }
+
+      function init() {
+        // Clear existing widget canvas if reloading
+        var mount = document.getElementById('l2d-container');
+        mount.innerHTML = '';
+
+        L2Dwidget.init({
+          model: {
+            jsonPath: MODEL_JSON, // <-- update this if your path differs
+            scale: 1
+          },
+          display: {
+            position: 'right',
+            width: WIDTH,
+            height: HEIGHT,
+            hOffset: 0,
+            vOffset: 0
+          },
+          // The widget honors DPR via the <canvas> backing store; this hints at sharper rendering
+          mobile: { show: true, scale: 1, motion: true },
+          react: { opacityDefault: 1, opacityOnHover: 1 }
+        });
+
+        // After the widget injects, bump the canvas DPR if needed
+        requestAnimationFrame(function(){
+          var canvas = mount.querySelector('canvas');
+          if (!canvas) return;
+          var dpr = getDPRChoice();
+          try {
+            var w = WIDTH, h = HEIGHT;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            var ctx = canvas.getContext('2d');
+            if (ctx && ctx.scale) ctx.scale(dpr, dpr);
+          } catch (e) { console.warn('DPR setup failed:', e); }
+
+          // Enable drag to move within the viewport
+          enableDrag(canvas, mount);
+        });
+      }
+
+      function enableDrag(canvas, mount) {
+        var isDown = false, startX = 0, startY = 0, baseRight = 12, baseBottom = 12;
+        function setPos(rx, by) { mount.style.right = rx + 'px'; mount.style.bottom = by + 'px'; }
+        function onDown(ev){ isDown = true; var r = mount.getBoundingClientRect(); startX = ev.clientX; startY = ev.clientY; baseRight = window.innerWidth - r.right; baseBottom = window.innerHeight - r.bottom; document.body.style.userSelect = 'none'; }
+        function onMove(ev){ if(!isDown) return; var dx = ev.clientX - startX; var dy = ev.clientY - startY; setPos(Math.max(0, baseRight - dx), Math.max(0, baseBottom - dy)); }
+        function onUp(){ isDown = false; document.body.style.userSelect = ''; }
+        canvas.addEventListener('mousedown', onDown);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        canvas.addEventListener('touchstart', function(e){ if(e.touches[0]) onDown(e.touches[0]); }, {passive:true});
+        window.addEventListener('touchmove', function(e){ if(e.touches[0]) onMove(e.touches[0]); }, {passive:true});
+        window.addEventListener('touchend', onUp, {passive:true});
+      }
+
+      // UI hooks
+      document.getElementById('btn-reload').addEventListener('click', init);
+      document.getElementById('dpr').addEventListener('change', init);
+
+      // Kick off
+      init();
+    })();
+  </script>
+
+  <noscript>
+    Please enable JavaScript to view the Live2D model.
+  </noscript>
+</body>
+</html>
