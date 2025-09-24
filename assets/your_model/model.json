@@ -6,5 +6,15 @@
 		"model.512/texture_00.png",
 		"model.512/texture_01.png",
 		"model.512/texture_02.png"
-	]
-}
+	],
+	"motions": {
+    "idle": [
+	  { "file": "motions/proud.mtn" },
+      { "file": "motions/happy.mtn" },
+      { "file": "motions/proud.mtn" }
+    ],
+    "tap_body": [
+      { "file": "motions/shy.mtn" },
+	  { "file": "motions/surprised.mtn" }
+    ]
+}}
