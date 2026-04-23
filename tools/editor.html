@@ -96,6 +96,18 @@
         color: #b00020;
         font-weight: 700;
       }
+
+      .bank {
+        margin: 6px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .bank .item {
+        padding: 2px 6px;
+      }
     </style>
   </head>
   <body>
@@ -121,7 +133,8 @@
           </p>
 
           <div class="toolbar bevel">
-            <button id="connect" class="btn bevel">连接仓库目录…</button>
+            <button id="connect" class="btn bevel" type="button">连接仓库目录…</button>
+            <button id="unlock" class="btn bevel" type="button" style="display: none">解锁写入</button>
             <span id="connState" class="mono">未连接</span>
             <span class="spacer"></span>
             <select id="loadExisting" class="bevel">
@@ -151,11 +164,49 @@
                 </div>
                 <div class="field">
                   <label for="tags">标签</label>
-                  <input id="tags" type="text" class="bevel-inset" placeholder="逗号分隔，例如：日常,翻译" />
+                  <div>
+                    <input id="tags" type="text" class="bevel-inset" placeholder="逗号分隔，例如：日常,翻译" />
+                    <div class="bank">
+                      <span class="mono">已有：</span>
+                      <span id="tagBank" class="mono">（连接仓库后可见）</span>
+                    </div>
+                    <div class="bank">
+                      <span class="mono">添加：</span>
+                      <input
+                        id="tagAdd"
+                        type="text"
+                        class="bevel-inset"
+                        list="tagOptions"
+                        placeholder="选择/输入标签"
+                        style="min-width: 180px"
+                      />
+                      <button id="tagAddBtn" class="btn bevel" type="button">添加</button>
+                      <datalist id="tagOptions"></datalist>
+                    </div>
+                  </div>
                 </div>
                 <div class="field">
                   <label for="cats">分类</label>
-                  <input id="cats" type="text" class="bevel-inset" placeholder="逗号分隔，例如：随笔,长文" />
+                  <div>
+                    <input id="cats" type="text" class="bevel-inset" placeholder="逗号分隔，例如：随笔,长文" />
+                    <div class="bank">
+                      <span class="mono">已有：</span>
+                      <span id="catBank" class="mono">（连接仓库后可见）</span>
+                    </div>
+                    <div class="bank">
+                      <span class="mono">添加：</span>
+                      <input
+                        id="catAdd"
+                        type="text"
+                        class="bevel-inset"
+                        list="catOptions"
+                        placeholder="选择/输入分类"
+                        style="min-width: 180px"
+                      />
+                      <button id="catAddBtn" class="btn bevel" type="button">添加</button>
+                      <datalist id="catOptions"></datalist>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -233,6 +284,22 @@
           .filter(Boolean);
       }
 
+      function uniqSorted(list) {
+        var map = {};
+        var out = [];
+        for (var i = 0; i < list.length; i++) {
+          var k = String(list[i] || "").trim();
+          if (!k) continue;
+          if (map[k]) continue;
+          map[k] = 1;
+          out.push(k);
+        }
+        out.sort(function (a, b) {
+          return String(a).localeCompare(String(b), "zh-Hans-CN");
+        });
+        return out;
+      }
+
       function escHtml(s) {
         return String(s)
           .replaceAll("&", "&amp;")
@@ -299,6 +366,68 @@
         }
         posts.sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
         return posts;
+      }
+
+      async function readAllPostMetas(dirHandle) {
+        const posts = await listPosts(dirHandle);
+        const metas = [];
+        for (const p of posts) {
+          const html = await getFileText(p.handle);
+          const meta = parseMetaFromHtml(html);
+          if (!meta || !meta.slug) continue;
+          metas.push(meta);
+        }
+        return metas;
+      }
+
+      function fillDatalist(el, options) {
+        if (!el) return;
+        el.innerHTML = "";
+        for (var i = 0; i < options.length; i++) {
+          var opt = document.createElement("option");
+          opt.value = options[i];
+          el.appendChild(opt);
+        }
+      }
+
+      function setBankText(el, text) {
+        if (!el) return;
+        el.textContent = text;
+      }
+
+      function renderBank(el, items, onPick) {
+        if (!el) return;
+        el.innerHTML = "";
+        if (!items || !items.length) {
+          el.textContent = "（暂无）";
+          return;
+        }
+        for (var i = 0; i < items.length; i++) {
+          (function (name) {
+            var a = document.createElement("a");
+            a.href = "#";
+            a.className = "item bevel";
+            a.textContent = name;
+            a.onclick = function (e) {
+              if (e && e.preventDefault) e.preventDefault();
+              onPick(name);
+              return false;
+            };
+            el.appendChild(a);
+          })(items[i]);
+        }
+      }
+
+      function appendTokenToCommaList(inputEl, token) {
+        if (!inputEl) return;
+        var t = String(token || "").trim();
+        if (!t) return;
+        var curr = splitList(inputEl.value);
+        for (var i = 0; i < curr.length; i++) {
+          if (curr[i] === t) return;
+        }
+        curr.push(t);
+        inputEl.value = curr.join(", ");
       }
 
       async function loadPostIntoEditor(fileName, htmlText) {
@@ -760,16 +889,87 @@
           opt.textContent = p.name;
           $("loadExisting").appendChild(opt);
         }
+
+        // Also refresh known tags/categories from existing posts.
+        try {
+          const metas = await readAllPostMetas(repoDir);
+          var tags = [];
+          var cats = [];
+          for (var i = 0; i < metas.length; i++) {
+            var m = metas[i] || {};
+            (m.tags || []).forEach(function (t) {
+              tags.push(t);
+            });
+            (m.categories || []).forEach(function (c) {
+              cats.push(c);
+            });
+          }
+          var allTags = uniqSorted(tags);
+          var allCats = uniqSorted(cats);
+          fillDatalist($("tagOptions"), allTags);
+          fillDatalist($("catOptions"), allCats);
+          renderBank($("tagBank"), allTags, function (t) {
+            appendTokenToCommaList($("tags"), t);
+          });
+          renderBank($("catBank"), allCats, function (c) {
+            appendTokenToCommaList($("cats"), c);
+          });
+        } catch (e) {
+          console.warn(e);
+          setBankText($("tagBank"), "（读取失败）");
+          setBankText($("catBank"), "（读取失败）");
+        }
       }
 
       async function connectRepo() {
-        if (!supportsFS()) {
-          alert("当前浏览器不支持 File System Access API。只能用“下载生成文件”。");
-          return;
+        // If opened from a remote origin, require an explicit unlock.
+        try {
+          var host = String(window.location.hostname || "");
+          var proto = String(window.location.protocol || "");
+          var isLocal =
+            proto === "file:" ||
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "" ||
+            host.indexOf(".local") !== -1;
+          var unlocked = false;
+          try {
+            unlocked = window.sessionStorage && sessionStorage.getItem("publisher:unlock") === "1";
+          } catch {}
+          if (!isLocal && !unlocked) {
+            alert("当前为在线页面，默认锁定。请先点“解锁写入”。");
+            return;
+          }
+        } catch {}
+
+        try {
+          if (!supportsFS()) {
+            alert("当前浏览器不支持 File System Access API。请用 Chrome/Edge，或改用“下载生成文件”。");
+            return;
+          }
+
+          // File System Access API generally requires a secure context.
+          // If opened as file://, some Chromium builds may block the picker.
+          if (window.isSecureContext === false) {
+            alert(
+              "当前页面不是安全上下文（isSecureContext=false）。\n\n" +
+                "请用以下任一方式打开发布器：\n" +
+                "1) 用 GitHub Pages 在线打开，然后点“解锁写入”；\n" +
+                "2) 用本地服务器（localhost）打开，例如 VSCode Live Server。\n"
+            );
+            return;
+          }
+
+          repoDir = await window.showDirectoryPicker({ mode: "readwrite" });
+          setConnState("已连接（可写入）");
+          await refreshExistingList();
+        } catch (e) {
+          console.error(e);
+          try {
+            setConnState("连接失败（请看控制台）");
+          } catch {}
+          alert("连接失败：可能是权限被拒绝、或浏览器阻止了目录选择器。请看控制台错误信息。");
         }
-        repoDir = await window.showDirectoryPicker({ mode: "readwrite" });
-        setConnState("已连接（可写入）");
-        await refreshExistingList();
       }
 
       async function loadExisting(name) {
@@ -851,10 +1051,9 @@
         wireFormatting();
         wireMetaAutoSlug();
 
-        // Safety: this publisher is meant to be used locally.
-        // When opened from a public GitHub Pages URL, it should do nothing.
-        // (Even if someone opens it online, they still cannot push to your repo without git access,
-        // but disabling avoids confusion.)
+        // Safety: allow connecting only when local by default.
+        // If opened from a public URL, require an explicit unlock (to avoid confusing "remote page can write local files").
+        var remoteLocked = false;
         try {
           var host = String(window.location.hostname || "");
           var proto = String(window.location.protocol || "");
@@ -864,11 +1063,43 @@
             host === "127.0.0.1" ||
             host === "" ||
             host.indexOf(".local") !== -1;
-          if (!isLocal) {
-            $("connect").disabled = true;
-            $("publish").disabled = true;
-            setConnState("已锁定：请在本地打开此页面");
+          var unlocked = false;
+          try {
+            unlocked = window.sessionStorage && sessionStorage.getItem("publisher:unlock") === "1";
+          } catch {}
+          remoteLocked = !isLocal && !unlocked;
+          if (remoteLocked) {
+            $("unlock").style.display = "";
+            setConnState("当前为在线页面：默认锁定（点“解锁写入”后才能连接）");
           }
+        } catch {}
+
+        $("unlock").addEventListener("click", function () {
+          var msg =
+            "你正在从在线地址打开发布器。\\n\\n" +
+            "如果你继续并授权目录访问，这个网页就能写入你选择的本地文件夹（需要你在系统对话框里点允许）。\\n\\n" +
+            "若你确定这是你自己打开的页面，请在下一步输入：UNLOCK";
+          var v = prompt(msg, "");
+          if (v !== "UNLOCK") return;
+          try {
+            if (window.sessionStorage) sessionStorage.setItem("publisher:unlock", "1");
+          } catch {}
+          $("unlock").style.display = "none";
+          setConnState("已解锁：可以连接仓库目录");
+        });
+
+        // Diagnostics (helps when the picker silently fails)
+        try {
+          var diag =
+            "proto=" +
+            String(window.location.protocol || "") +
+            " host=" +
+            String(window.location.hostname || "") +
+            " secure=" +
+            String(window.isSecureContext) +
+            " picker=" +
+            (supportsFS() ? "yes" : "no");
+          setConnState("未连接 · " + diag);
         } catch {}
 
         $("connect").addEventListener("click", connectRepo);
@@ -896,6 +1127,15 @@
           }
         });
         $("preview").addEventListener("click", previewHtml);
+
+        $("tagAddBtn").addEventListener("click", function () {
+          appendTokenToCommaList($("tags"), $("tagAdd").value);
+          $("tagAdd").value = "";
+        });
+        $("catAddBtn").addEventListener("click", function () {
+          appendTokenToCommaList($("cats"), $("catAdd").value);
+          $("catAdd").value = "";
+        });
 
         if (!supportsFS()) {
           setConnState("浏览器不支持（仅下载）");
