@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>导航</title>
+    <link rel="stylesheet" href="assets/retro.css" />
+    <style type="text/css">
+      /* Keep it very old-browser friendly */
+      .navbox {
+        width: 200px;
+      }
+      .tree {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .tree ul {
+        margin: 4px 0 4px 16px;
+        padding: 0;
+      }
+      .tree li {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .tree a {
+        text-decoration: none;
+      }
+      .twisty {
+        cursor: pointer;
+        font-family: "Courier New", Courier, monospace;
+        padding-right: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page navbox">
+      <div class="box">
+        <b>目录</b>
+        <hr />
+        <div class="tree">
+          <ul>
+            <li>
+              <span class="twisty" onclick="t('f1');return false;">[+]</span>
+              <a href="home.html" target="main">My Blog</a>
+              <ul id="f1" style="display: none;">
+                <li><a href="home.html" target="main">时间轴</a></li>
+                <li><a href="tags/index.html" target="main">标签</a></li>
+                <li><a href="categories/index.html" target="main">分类</a></li>
+              </ul>
+            </li>
+          </ul>
+          <hr />
+          <span class="mono">提示：拖动中间分隔条可调整宽度</span>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      function t(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.style.display === "none") el.style.display = "block";
+        else el.style.display = "none";
+      }
+    </script>
+  </body>
+</html>
+

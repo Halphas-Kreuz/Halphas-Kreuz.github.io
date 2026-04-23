@@ -294,41 +294,47 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escHtml(title)}</title>
-    <link rel="stylesheet" href="${root}assets/win98.css" />
+    <link rel="stylesheet" href="${root}assets/retro.css" />
   </head>
   <body>
-    <div class="desk">
-      <div class="window bevel">
-        <div class="titlebar">
-          <span>${escHtml(title)}</span>
-          <span class="spacer"></span>
-          <span class="sysbtns">
-            <span class="sysbtn bevel">_</span>
-            <span class="sysbtn bevel">□</span>
-            <span class="sysbtn bevel">×</span>
+    <div class="page">
+      <div class="header">
+        <div class="box">
+          <b>${escHtml(title)}</b><br />
+          <span class="nav">
+            <a href="${root}home.html">时间轴</a><span class="sep">|</span>
+            <a href="${root}tags/index.html">标签</a><span class="sep">|</span>
+            <a href="${root}categories/index.html">分类</a>
+            <span class="sep">|</span>
+            <span class="mono">${escHtml(date)}</span>
           </span>
         </div>
-        <div class="content">
-          ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
-          <p>
-            <a href="${root}index.html">时间轴</a> · <span class="mono">${escHtml(date)}</span>
-          </p>
-          <p>${tagLinks || ""}</p>
-          <p>${catLinks || ""}</p>
-          <hr />
-          <div class="post-body" id="postBody">${innerHtml || ""}</div>
-        </div>
-        <div class="statusbar bevel-inset">
-          <span class="mono">/posts/${escHtml(fileBase)}.html</span>
-        </div>
       </div>
+
+      <div class="box">
+        ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
+        <div>${tagLinks || ""}</div>
+        <div>${catLinks || ""}</div>
+        <hr />
+        <div class="post-body" id="postBody">${innerHtml || ""}</div>
+      </div>
+
+      <p class="mono">/posts/${escHtml(fileBase)}.html</p>
     </div>
 
-    <div id="l2d" class="l2d-mount"></div>
-    <div class="l2d-controls">
-      <button id="l2d-toggle" class="btn bevel">Live2D</button>
-    </div>
-    <script src="${root}assets/live2d-c2.js"></script>
+    <div id="l2d"></div>
+    <script type="text/javascript">
+      (function () {
+        var ok = !!window.Promise && !!window.URL && !!document.getElementsByTagName && !!document.createElement;
+        if (!ok) return;
+        var head = document.getElementsByTagName("head")[0];
+        if (!head) return;
+        var s = document.createElement("script");
+        s.type = "text/javascript";
+        s.src = "${root}assets/live2d-c2.js";
+        head.appendChild(s);
+      })();
+    </script>
   </body>
 </html>`;
       }
@@ -345,44 +351,49 @@
           : `<p class="mono">（暂无${kind}。）</p>`;
 
         const id = kind === "标签" ? "tags" : "categories";
-        const baseHref = kind === "标签" ? `${rootPrefix}tags/index.html` : `${rootPrefix}categories/index.html`;
         return `<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escHtml(title)}</title>
-    <link rel="stylesheet" href="${rootPrefix}assets/win98.css" />
+    <link rel="stylesheet" href="${rootPrefix}assets/retro.css" />
   </head>
   <body>
-    <div class="desk">
-      <div class="window bevel">
-        <div class="titlebar">
-          <span>${escHtml(title)}</span>
-          <span class="spacer"></span>
-          <span class="sysbtns">
-            <span class="sysbtn bevel">_</span>
-            <span class="sysbtn bevel">□</span>
-            <span class="sysbtn bevel">×</span>
+    <div class="page">
+      <div class="header">
+        <div class="box">
+          <b>${escHtml(title)}</b><br />
+          <span class="nav">
+            <a href="${rootPrefix}home.html">时间轴</a><span class="sep">|</span>
+            <a href="${rootPrefix}tags/index.html">标签</a><span class="sep">|</span>
+            <a href="${rootPrefix}categories/index.html">分类</a>
           </span>
         </div>
-        <div class="content">
-          <p><a href="${rootPrefix}index.html">时间轴</a> · <a href="${baseHref}">${escHtml(kind)}</a></p>
-          <hr />
-          <div id="${id}">
-            ${list}
-          </div>
-        </div>
-        <div class="statusbar bevel-inset">
-          <span class="mono">Auto-generated.</span>
+      </div>
+
+      <div class="box">
+        <b>${escHtml(kind)}</b>
+        <hr />
+        <div id="${id}">
+          ${list}
         </div>
       </div>
     </div>
-    <div id="l2d" class="l2d-mount"></div>
-    <div class="l2d-controls">
-      <button id="l2d-toggle" class="btn bevel">Live2D</button>
-    </div>
-    <script src="${rootPrefix}assets/live2d-c2.js"></script>
+
+    <div id="l2d"></div>
+    <script type="text/javascript">
+      (function () {
+        var ok = !!window.Promise && !!window.URL && !!document.getElementsByTagName && !!document.createElement;
+        if (!ok) return;
+        var head = document.getElementsByTagName("head")[0];
+        if (!head) return;
+        var s = document.createElement("script");
+        s.type = "text/javascript";
+        s.src = "${rootPrefix}assets/live2d-c2.js";
+        head.appendChild(s);
+      })();
+    </script>
   </body>
 </html>`;
       }
@@ -406,40 +417,45 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>时间轴</title>
-    <link rel="stylesheet" href="assets/win98.css" />
+    <link rel="stylesheet" href="assets/retro.css" />
   </head>
   <body>
-    <div class="desk">
-      <div class="window bevel">
-        <div class="titlebar">
-          <span>My Blog</span>
-          <span class="spacer"></span>
-          <span class="sysbtns">
-            <span class="sysbtn bevel">_</span>
-            <span class="sysbtn bevel">□</span>
-            <span class="sysbtn bevel">×</span>
+    <div class="page">
+      <div class="header">
+        <div class="box">
+          <b>My Blog</b><br />
+          <span class="nav">
+            <a href="home.html">时间轴</a><span class="sep">|</span>
+            <a href="tags/index.html">标签</a><span class="sep">|</span>
+            <a href="categories/index.html">分类</a>
           </span>
         </div>
-        <div class="content">
-          <p>
-            <a href="index.html">时间轴</a> · <a href="tags/index.html">标签</a> ·
-            <a href="categories/index.html">分类</a>
-          </p>
-          <hr />
-          <div id="timeline">
-            ${list}
-          </div>
-        </div>
-        <div class="statusbar bevel-inset">
-          <span class="mono">Powered by pure HTML.</span>
+      </div>
+
+      <div class="box">
+        <b>时间轴</b>
+        <hr />
+        <div id="timeline">
+          ${list}
         </div>
       </div>
+
+      <p class="mono">纯 HTML。Live2D 仅在现代浏览器加载。</p>
     </div>
-    <div id="l2d" class="l2d-mount"></div>
-    <div class="l2d-controls">
-      <button id="l2d-toggle" class="btn bevel">Live2D</button>
-    </div>
-    <script src="assets/live2d-c2.js"></script>
+
+    <div id="l2d"></div>
+    <script type="text/javascript">
+      (function () {
+        var ok = !!window.Promise && !!window.URL && !!document.getElementsByTagName && !!document.createElement;
+        if (!ok) return;
+        var head = document.getElementsByTagName("head")[0];
+        if (!head) return;
+        var s = document.createElement("script");
+        s.type = "text/javascript";
+        s.src = "assets/live2d-c2.js";
+        head.appendChild(s);
+      })();
+    </script>
   </body>
 </html>`;
       }
@@ -468,8 +484,8 @@
 
         parsed.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(a.slug).localeCompare(String(b.slug)));
 
-        const indexHtml = buildTimelineHtml(parsed);
-        await writeTextFile(dirHandle, ["index.html"], indexHtml);
+        const homeHtml = buildTimelineHtml(parsed);
+        await writeTextFile(dirHandle, ["home.html"], homeHtml);
 
         // Tags
         const allTags = Array.from(tagMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));

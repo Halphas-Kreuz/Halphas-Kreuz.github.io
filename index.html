@@ -1,43 +1,17 @@
-<!doctype html>
-<html lang="zh-CN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>时间轴</title>
-    <link rel="stylesheet" href="assets/win98.css" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>My Blog</title>
   </head>
-  <body>
-    <div class="desk">
-      <div class="window bevel">
-        <div class="titlebar">
-          <span>My Blog</span>
-          <span class="spacer"></span>
-          <span class="sysbtns">
-            <span class="sysbtn bevel">_</span>
-            <span class="sysbtn bevel">□</span>
-            <span class="sysbtn bevel">×</span>
-          </span>
-        </div>
-        <div class="content">
-          <p>
-            <a href="index.html">时间轴</a> · <a href="tags/index.html">标签</a> ·
-            <a href="categories/index.html">分类</a>
-          </p>
-          <hr />
-          <div id="timeline">
-            <p class="mono">（暂无文章。用本地编辑器发布后会自动生成列表。）</p>
-          </div>
-        </div>
-        <div class="statusbar bevel-inset">
-          <span class="mono">Powered by pure HTML.</span>
-        </div>
-      </div>
-    </div>
-
-    <div id="l2d" class="l2d-mount"></div>
-    <div class="l2d-controls">
-      <button id="l2d-toggle" class="btn bevel">Live2D</button>
-    </div>
-    <script src="assets/live2d-c2.js"></script>
-  </body>
+  <frameset cols="220,*" frameborder="1" border="3" framespacing="2">
+    <frame src="nav.html" name="nav" scrolling="auto" />
+    <frame src="home.html" name="main" scrolling="auto" />
+    <noframes>
+      <body>
+        <p>你的浏览器不支持 frames。请直接打开 <a href="home.html">home.html</a>。</p>
+      </body>
+    </noframes>
+  </frameset>
 </html>
+

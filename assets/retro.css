@@ -1,0 +1,87 @@
+/* Retro, Win98-era friendly CSS (avoid variables, flex/grid, modern selectors) */
+body {
+  margin: 0;
+  padding: 0;
+  background: #c0c0c0;
+  color: #000000;
+  font-family: Verdana, Arial, "MS Sans Serif", sans-serif;
+  font-size: 14px;
+}
+
+a:link {
+  color: #0000ee;
+}
+
+a:visited {
+  color: #551a8b;
+}
+
+.page {
+  width: 760px;
+  margin: 0 auto;
+  padding: 12px 10px;
+  background: #c0c0c0;
+}
+
+.box {
+  background: #c0c0c0;
+  border: 1px solid #808080;
+  padding: 10px;
+}
+
+.header {
+  margin-bottom: 10px;
+}
+
+.nav {
+  font-size: 12px;
+}
+
+.nav a {
+  text-decoration: none;
+}
+
+.nav .sep {
+  color: #000000;
+  padding: 0 6px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #808080;
+  height: 1px;
+  margin: 10px 0;
+}
+
+.mono {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+}
+
+.tree {
+  font-size: 12px;
+}
+
+.tree ul {
+  margin: 4px 0 4px 16px;
+  padding: 0;
+}
+
+.tree li {
+  list-style: none;
+}
+
+.tag,
+.cat {
+  display: inline;
+  padding-right: 8px;
+}
+
+/* Live2D mount is progressive enhancement; old browsers will ignore */
+#l2d {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 320px;
+  height: 480px;
+}

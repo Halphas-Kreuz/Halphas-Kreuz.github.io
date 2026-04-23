@@ -1,7 +1,10 @@
 (function () {
+  // Old browsers (Win98 era) should still be able to read the page;
+  // this script is only meant for modern browsers.
+  if (!window.Promise || !window.URL || !document.createElement) return;
+
   var mount = document.getElementById("l2d");
-  var toggle = document.getElementById("l2d-toggle");
-  if (!mount || !toggle) return;
+  if (!mount) return;
 
   // ---- Config (Cubism 2) ----
   // Put your model files under assets/your_model/ and ensure model.json paths are correct.
@@ -12,22 +15,6 @@
   var WIDTH = 320;
   var HEIGHT = 480;
   var SCRIPT_SRC = "https://unpkg.com/live2d-widget@3.1.4/lib/L2Dwidget.min.js";
-
-  function setHidden(isHidden) {
-    if (isHidden) mount.classList.add("hidden");
-    else mount.classList.remove("hidden");
-    try {
-      localStorage.setItem("l2d:hidden", isHidden ? "1" : "0");
-    } catch {}
-  }
-
-  function getHidden() {
-    try {
-      return localStorage.getItem("l2d:hidden") === "1";
-    } catch {
-      return false;
-    }
-  }
 
   function loadScriptOnce(src) {
     return new Promise(function (resolve, reject) {
@@ -50,6 +37,11 @@
     mount.innerHTML = "";
     if (!window.L2Dwidget || !window.L2Dwidget.init) return;
 
+    // Prefer fixed positioning when supported.
+    try {
+      mount.style.position = "fixed";
+    } catch {}
+
     window.L2Dwidget.init({
       model: { jsonPath: MODEL_JSON, scale: 1 },
       display: {
@@ -63,13 +55,6 @@
       react: { opacityDefault: 1, opacityOnHover: 1 },
     });
   }
-
-  // Restore state
-  setHidden(getHidden());
-
-  toggle.addEventListener("click", function () {
-    setHidden(!mount.classList.contains("hidden"));
-  });
 
   // Lazy load widget
   loadScriptOnce(SCRIPT_SRC)
