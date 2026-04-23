@@ -300,23 +300,27 @@
     <div class="page">
       <div class="header">
         <div class="box">
-          <b>${escHtml(title)}</b><br />
-          <span class="nav">
-            <a href="${root}home.html">时间轴</a><span class="sep">|</span>
-            <a href="${root}tags/index.html">标签</a><span class="sep">|</span>
-            <a href="${root}categories/index.html">分类</a>
-            <span class="sep">|</span>
-            <span class="mono">${escHtml(date)}</span>
-          </span>
+          <div class="box-body">
+            <b>${escHtml(title)}</b><br />
+            <span class="nav">
+              <a href="${root}home.html">时间轴</a><span class="sep">|</span>
+              <a href="${root}tags/index.html">标签</a><span class="sep">|</span>
+              <a href="${root}categories/index.html">分类</a>
+              <span class="sep">|</span>
+              <span class="mono">${escHtml(date)}</span>
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="box">
-        ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
-        <div>${tagLinks || ""}</div>
-        <div>${catLinks || ""}</div>
-        <hr />
-        <div class="post-body" id="postBody">${innerHtml || ""}</div>
+        <div class="box-body">
+          ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
+          <div>${tagLinks || ""}</div>
+          <div>${catLinks || ""}</div>
+          <hr />
+          <div class="post-body" id="postBody">${innerHtml || ""}</div>
+        </div>
       </div>
 
       <p class="mono">/posts/${escHtml(fileBase)}.html</p>
@@ -363,20 +367,24 @@
     <div class="page">
       <div class="header">
         <div class="box">
-          <b>${escHtml(title)}</b><br />
-          <span class="nav">
-            <a href="${rootPrefix}home.html">时间轴</a><span class="sep">|</span>
-            <a href="${rootPrefix}tags/index.html">标签</a><span class="sep">|</span>
-            <a href="${rootPrefix}categories/index.html">分类</a>
-          </span>
+          <div class="box-body">
+            <b>${escHtml(title)}</b><br />
+            <span class="nav">
+              <a href="${rootPrefix}home.html">时间轴</a><span class="sep">|</span>
+              <a href="${rootPrefix}tags/index.html">标签</a><span class="sep">|</span>
+              <a href="${rootPrefix}categories/index.html">分类</a>
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="box">
-        <b>${escHtml(kind)}</b>
-        <hr />
-        <div id="${id}">
-          ${list}
+        <div class="box-body">
+          <b>${escHtml(kind)}</b>
+          <hr />
+          <div id="${id}">
+            ${list}
+          </div>
         </div>
       </div>
     </div>
@@ -423,20 +431,24 @@
     <div class="page">
       <div class="header">
         <div class="box">
-          <b>My Blog</b><br />
-          <span class="nav">
-            <a href="home.html">时间轴</a><span class="sep">|</span>
-            <a href="tags/index.html">标签</a><span class="sep">|</span>
-            <a href="categories/index.html">分类</a>
-          </span>
+          <div class="box-body">
+            <b>My Blog</b><br />
+            <span class="nav">
+              <a href="home.html">时间轴</a><span class="sep">|</span>
+              <a href="tags/index.html">标签</a><span class="sep">|</span>
+              <a href="categories/index.html">分类</a>
+            </span>
+          </div>
         </div>
       </div>
 
       <div class="box">
-        <b>时间轴</b>
-        <hr />
-        <div id="timeline">
-          ${list}
+        <div class="box-body">
+          <b>时间轴</b>
+          <hr />
+          <div id="timeline">
+            ${list}
+          </div>
         </div>
       </div>
 

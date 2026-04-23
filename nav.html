@@ -8,7 +8,14 @@
     <style type="text/css">
       /* Keep it very old-browser friendly */
       .navbox {
-        width: 200px;
+        width: auto;
+        margin: 0;
+        padding: 6px;
+      }
+      .page.navbox {
+        width: auto;
+        margin: 0;
+        padding: 6px;
       }
       .tree {
         font-size: 12px;
@@ -35,18 +42,45 @@
   </head>
   <body>
     <div class="page navbox">
-      <div class="box">
+      <div class="navplain">
         <b>目录</b>
         <hr />
         <div class="tree">
           <ul>
             <li>
-              <span class="twisty" onclick="t('f1');return false;">[+]</span>
+              <span class="twisty" onclick="t('f1');return false;">[+]</span> <span class="mono">[DIR]</span>
               <a href="home.html" target="main">My Blog</a>
               <ul id="f1" style="display: none;">
-                <li><a href="home.html" target="main">时间轴</a></li>
-                <li><a href="tags/index.html" target="main">标签</a></li>
-                <li><a href="categories/index.html" target="main">分类</a></li>
+                <li>
+                  <table class="treerow" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td class="treeprefix mono">|--</td>
+                      <td class="treelabel">
+                        <span class="mono">[FILE]</span> <a href="home.html" target="main">时间轴</a>
+                      </td>
+                    </tr>
+                  </table>
+                </li>
+                <li>
+                  <table class="treerow" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td class="treeprefix mono">|--</td>
+                      <td class="treelabel">
+                        <span class="mono">[FILE]</span> <a href="tags/index.html" target="main">标签</a>
+                      </td>
+                    </tr>
+                  </table>
+                </li>
+                <li>
+                  <table class="treerow" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td class="treeprefix mono">`--</td>
+                      <td class="treelabel">
+                        <span class="mono">[FILE]</span> <a href="categories/index.html" target="main">分类</a>
+                      </td>
+                    </tr>
+                  </table>
+                </li>
               </ul>
             </li>
           </ul>
@@ -66,4 +100,3 @@
     </script>
   </body>
 </html>
-

@@ -3,6 +3,28 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>My Blog</title>
+    <script type="text/javascript">
+      (function () {
+        // Frameset doesn't support true min/max widths in the standard.
+        // This is a best-effort clamp for browsers that update frameset.cols.
+        var MIN = 160;
+        var MAX = 380;
+        function clampCols() {
+          var fs = document.getElementsByTagName("frameset")[0];
+          if (!fs) return;
+          var cols = fs.cols || "";
+          var m = /^\s*(\d+)/.exec(cols);
+          if (!m) return;
+          var w = parseInt(m[1], 10);
+          if (isNaN(w)) return;
+          var cw = w;
+          if (cw < MIN) cw = MIN;
+          if (cw > MAX) cw = MAX;
+          if (cw !== w) fs.cols = cw + ",*";
+        }
+        if (window.setInterval) window.setInterval(clampCols, 600);
+      })();
+    </script>
   </head>
   <frameset cols="220,*" frameborder="1" border="3" framespacing="2">
     <frame src="nav.html" name="nav" scrolling="auto" />
@@ -14,4 +36,3 @@
     </noframes>
   </frameset>
 </html>
-
