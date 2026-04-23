@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>本地发布器（Win98 Blog）</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="stylesheet" href="/assets/win98.css" />
+    <link rel="stylesheet" href="../assets/win98.css" />
     <style>
       .grid {
         display: grid;
@@ -277,23 +277,24 @@
         const tagLinks = tags
           .map((t) => {
             const s = pageSlug(t);
-            return `<a class="tag" href="/tags/${encodePathSegment(s)}.html">${escHtml(t)}</a>`;
+            return `<a class="tag" href="${root}tags/${encodePathSegment(s)}.html">${escHtml(t)}</a>`;
           })
           .join(" ");
         const catLinks = cats
           .map((c) => {
             const s = pageSlug(c);
-            return `<a class="cat" href="/categories/${encodePathSegment(s)}.html">${escHtml(c)}</a>`;
+            return `<a class="cat" href="${root}categories/${encodePathSegment(s)}.html">${escHtml(c)}</a>`;
           })
           .join(" ");
 
+        var root = "../";
         return `<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escHtml(title)}</title>
-    <link rel="stylesheet" href="/assets/win98.css" />
+    <link rel="stylesheet" href="${root}assets/win98.css" />
   </head>
   <body>
     <div class="desk">
@@ -310,7 +311,7 @@
         <div class="content">
           ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
           <p>
-            <a href="/index.html">时间轴</a> · <span class="mono">${escHtml(date)}</span>
+            <a href="${root}index.html">时间轴</a> · <span class="mono">${escHtml(date)}</span>
           </p>
           <p>${tagLinks || ""}</p>
           <p>${catLinks || ""}</p>
@@ -327,12 +328,12 @@
     <div class="l2d-controls">
       <button id="l2d-toggle" class="btn bevel">Live2D</button>
     </div>
-    <script src="/assets/live2d-c2.js"></script>
+    <script src="${root}assets/live2d-c2.js"></script>
   </body>
 </html>`;
       }
 
-      function buildListIndexHtml(kind, title, items) {
+      function buildListIndexHtml(kind, title, items, rootPrefix) {
         // items: [{label, href, count}]
         const list = items.length
           ? `<ul>${items
@@ -344,14 +345,14 @@
           : `<p class="mono">（暂无${kind}。）</p>`;
 
         const id = kind === "标签" ? "tags" : "categories";
-        const baseHref = kind === "标签" ? "/tags/index.html" : "/categories/index.html";
+        const baseHref = kind === "标签" ? `${rootPrefix}tags/index.html` : `${rootPrefix}categories/index.html`;
         return `<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escHtml(title)}</title>
-    <link rel="stylesheet" href="/assets/win98.css" />
+    <link rel="stylesheet" href="${rootPrefix}assets/win98.css" />
   </head>
   <body>
     <div class="desk">
@@ -366,7 +367,7 @@
           </span>
         </div>
         <div class="content">
-          <p><a href="/index.html">时间轴</a> · <a href="${baseHref}">${escHtml(kind)}</a></p>
+          <p><a href="${rootPrefix}index.html">时间轴</a> · <a href="${baseHref}">${escHtml(kind)}</a></p>
           <hr />
           <div id="${id}">
             ${list}
@@ -381,7 +382,7 @@
     <div class="l2d-controls">
       <button id="l2d-toggle" class="btn bevel">Live2D</button>
     </div>
-    <script src="/assets/live2d-c2.js"></script>
+    <script src="${rootPrefix}assets/live2d-c2.js"></script>
   </body>
 </html>`;
       }
@@ -391,7 +392,7 @@
         const list = posts.length
           ? `<ul>${posts
               .map((p) => {
-                const href = `/posts/${encodePathSegment(p.slug)}.html`;
+                const href = `posts/${encodePathSegment(p.slug)}.html`;
                 return `<li><span class="mono">${escHtml(p.date || "")}</span> · <a href="${href}">${escHtml(
                   p.title || p.slug
                 )}</a></li>`;
@@ -405,7 +406,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>时间轴</title>
-    <link rel="stylesheet" href="/assets/win98.css" />
+    <link rel="stylesheet" href="assets/win98.css" />
   </head>
   <body>
     <div class="desk">
@@ -421,8 +422,8 @@
         </div>
         <div class="content">
           <p>
-            <a href="/index.html">时间轴</a> · <a href="/tags/index.html">标签</a> ·
-            <a href="/categories/index.html">分类</a>
+            <a href="index.html">时间轴</a> · <a href="tags/index.html">标签</a> ·
+            <a href="categories/index.html">分类</a>
           </p>
           <hr />
           <div id="timeline">
@@ -438,7 +439,7 @@
     <div class="l2d-controls">
       <button id="l2d-toggle" class="btn bevel">Live2D</button>
     </div>
-    <script src="/assets/live2d-c2.js"></script>
+    <script src="assets/live2d-c2.js"></script>
   </body>
 </html>`;
       }
@@ -474,15 +475,15 @@
         const allTags = Array.from(tagMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
         const tagIndexItems = allTags.map((t) => ({
           label: t,
-          href: `/tags/${encodePathSegment(pageSlug(t))}.html`,
+          href: `${encodePathSegment(pageSlug(t))}.html`,
           count: tagMap.get(t).length,
         }));
-        await writeTextFile(dirHandle, ["tags", "index.html"], buildListIndexHtml("标签", "标签", tagIndexItems));
+        await writeTextFile(dirHandle, ["tags", "index.html"], buildListIndexHtml("标签", "标签", tagIndexItems, "../"));
         for (const t of allTags) {
           const metas = tagMap.get(t).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
           const items = metas.map((m) => ({
             label: `${m.date || ""} · ${m.title || m.slug}`,
-            href: `/posts/${encodePathSegment(m.slug)}.html`,
+            href: `../posts/${encodePathSegment(m.slug)}.html`,
             count: "",
           }));
           const list = items.length
@@ -490,7 +491,7 @@
                 .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
                 .join("")}</ul>`
             : `<p class="mono">（暂无文章。）</p>`;
-          const html = buildListIndexHtml("标签", `标签：${t}`, []);
+          const html = buildListIndexHtml("标签", `标签：${t}`, [], "../");
           const finalHtml = html.replace(/<div id="tags">[\\s\\S]*?<\\/div>/, `<div id="tags">${list}</div>`);
           await writeTextFile(dirHandle, ["tags", `${pageSlug(t)}.html`], finalHtml);
         }
@@ -499,15 +500,15 @@
         const allCats = Array.from(catMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
         const catIndexItems = allCats.map((c) => ({
           label: c,
-          href: `/categories/${encodePathSegment(pageSlug(c))}.html`,
+          href: `${encodePathSegment(pageSlug(c))}.html`,
           count: catMap.get(c).length,
         }));
-        await writeTextFile(dirHandle, ["categories", "index.html"], buildListIndexHtml("分类", "分类", catIndexItems));
+        await writeTextFile(dirHandle, ["categories", "index.html"], buildListIndexHtml("分类", "分类", catIndexItems, "../"));
         for (const c of allCats) {
           const metas = catMap.get(c).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
           const items = metas.map((m) => ({
             label: `${m.date || ""} · ${m.title || m.slug}`,
-            href: `/posts/${encodePathSegment(m.slug)}.html`,
+            href: `../posts/${encodePathSegment(m.slug)}.html`,
             count: "",
           }));
           const list = items.length
@@ -515,7 +516,7 @@
                 .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
                 .join("")}</ul>`
             : `<p class="mono">（暂无文章。）</p>`;
-          const html = buildListIndexHtml("分类", `分类：${c}`, []);
+          const html = buildListIndexHtml("分类", `分类：${c}`, [], "../");
           const finalHtml = html.replace(/<div id="categories">[\\s\\S]*?<\\/div>/, `<div id="categories">${list}</div>`);
           await writeTextFile(dirHandle, ["categories", `${pageSlug(c)}.html`], finalHtml);
         }

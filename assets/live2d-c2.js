@@ -4,8 +4,11 @@
   if (!mount || !toggle) return;
 
   // ---- Config (Cubism 2) ----
-  // Put your model files under /assets/your_model/ and ensure model.json paths are correct.
-  var MODEL_JSON = "/assets/your_model/model.json";
+  // Put your model files under assets/your_model/ and ensure model.json paths are correct.
+  // Compute the correct URL based on where this script is hosted (works for GitHub Pages project sites too).
+  var scriptUrl = (document.currentScript && document.currentScript.src) || "";
+  var assetsBase = scriptUrl ? new URL(".", scriptUrl) : new URL("./assets/", document.baseURI);
+  var MODEL_JSON = new URL("your_model/model.json", assetsBase).toString();
   var WIDTH = 320;
   var HEIGHT = 480;
   var SCRIPT_SRC = "https://unpkg.com/live2d-widget@3.1.4/lib/L2Dwidget.min.js";
@@ -76,4 +79,3 @@
       console.warn(e);
     });
 })();
-
