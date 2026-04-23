@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>本地发布器（Win98 Blog）</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="/assets/win98.css" />
+    <style>
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .editor {
+        min-height: 320px;
+        padding: 10px;
+        background: #fff;
+        color: #000;
+        overflow: auto;
+        outline: none;
+        white-space: normal;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #222;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .row .spacer {
+        flex: 1;
+      }
+
+      .danger {
+        color: #b00020;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="desk">
+      <div class="window bevel">
+        <div class="titlebar">
+          <span>Local Publisher</span>
+          <span class="spacer"></span>
+          <span class="sysbtns">
+            <span class="sysbtn bevel">_</span>
+            <span class="sysbtn bevel">□</span>
+            <span class="sysbtn bevel">×</span>
+          </span>
+        </div>
+        <div class="content">
+          <p class="hint">
+            这是一个“AO3式”的本地发布器：你写富文本，它会把内容生成纯 HTML 并写入仓库的
+            <span class="mono">/posts/</span>，同时更新首页时间轴/标签/分类页。
+          </p>
+          <p class="hint danger">
+            注意：为了能直接写入文件，这个页面需要 Chromium 系浏览器（支持 File System Access API）。
+            如果你的浏览器不支持，会退化为“下载生成的 HTML 文件”。
+          </p>
+
+          <div class="toolbar bevel">
+            <button id="connect" class="btn bevel">连接仓库目录…</button>
+            <span id="connState" class="mono">未连接</span>
+            <span class="spacer"></span>
+            <select id="loadExisting" class="bevel">
+              <option value="">（加载已有文章…）</option>
+            </select>
+            <button id="refresh" class="btn bevel">刷新列表</button>
+          </div>
+
+          <div class="grid">
+            <div class="window bevel">
+              <div class="titlebar">
+                <span>Meta</span>
+                <span class="spacer"></span>
+              </div>
+              <div class="content">
+                <div class="field">
+                  <label for="title">标题</label>
+                  <input id="title" type="text" class="bevel-inset" placeholder="文章标题" />
+                </div>
+                <div class="field">
+                  <label for="date">日期</label>
+                  <input id="date" type="date" class="bevel-inset" />
+                </div>
+                <div class="field">
+                  <label for="slug">文件名</label>
+                  <input id="slug" type="text" class="bevel-inset" placeholder="自动生成（可改）" />
+                </div>
+                <div class="field">
+                  <label for="tags">标签</label>
+                  <input id="tags" type="text" class="bevel-inset" placeholder="逗号分隔，例如：日常,翻译" />
+                </div>
+                <div class="field">
+                  <label for="cats">分类</label>
+                  <input id="cats" type="text" class="bevel-inset" placeholder="逗号分隔，例如：随笔,长文" />
+                </div>
+              </div>
+            </div>
+
+            <div class="window bevel">
+              <div class="titlebar">
+                <span>Rich Text</span>
+                <span class="spacer"></span>
+              </div>
+              <div class="toolbar">
+                <button class="btn bevel" data-cmd="bold"><b>B</b></button>
+                <button class="btn bevel" data-cmd="italic"><i>I</i></button>
+                <button class="btn bevel" data-cmd="underline"><u>U</u></button>
+                <button class="btn bevel" data-cmd="strikeThrough"><s>S</s></button>
+                <span class="spacer"></span>
+                <button class="btn bevel" data-cmd="insertUnorderedList">• 列表</button>
+                <button class="btn bevel" data-cmd="insertOrderedList">1. 列表</button>
+                <button class="btn bevel" id="quote">引用</button>
+                <button class="btn bevel" id="hr">分割线</button>
+                <button class="btn bevel" id="link">链接</button>
+                <select id="size" class="bevel">
+                  <option value="">字号…</option>
+                  <option value="size-sm">小</option>
+                  <option value="size-lg">大</option>
+                  <option value="size-xl">特大</option>
+                </select>
+                <button class="btn bevel" id="clearFmt">清格式</button>
+              </div>
+              <div id="editor" class="editor bevel-inset post-body" contenteditable="true"></div>
+              <div class="toolbar">
+                <div class="row" style="width: 100%">
+                  <span id="saveState" class="mono">未发布</span>
+                  <span class="spacer"></span>
+                  <button id="preview" class="btn bevel">预览 HTML</button>
+                  <button id="publish" class="btn bevel">发布（写入仓库）</button>
+                  <button id="download" class="btn bevel">下载生成文件</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="hint">
+            站点访问：<span class="mono">/index.html</span>（时间轴）、<span class="mono">/tags/</span>、<span class="mono">/categories/</span>。
+            Live2D 配置在 <span class="mono">/assets/live2d-c2.js</span>。
+          </p>
+        </div>
+        <div class="statusbar bevel-inset">
+          <span class="mono">Local-only tool. Generated pages are plain HTML.</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // -------- Helpers --------
+      const $ = (id) => document.getElementById(id);
+
+      function todayISO() {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      }
+
+      function safeFileBase(input) {
+        const s = String(input || "").trim();
+        // Remove characters not allowed on common filesystems.
+        const cleaned = s.replace(/[<>:"/\\\\|?*]+/g, " ").replace(/\\s+/g, " ").trim();
+        if (!cleaned) return "untitled";
+        return cleaned.replace(/\\s/g, "-");
+      }
+
+      function splitList(s) {
+        return String(s || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      }
+
+      function escHtml(s) {
+        return String(s)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function encodePathSegment(seg) {
+        // Keep Chinese/UTF-8 filenames readable but URL-safe.
+        return encodeURIComponent(seg).replaceAll("%2F", "/");
+      }
+
+      function pageSlug(label) {
+        return safeFileBase(label);
+      }
+
+      function metaBlock(meta) {
+        return `<!-- post-meta: ${JSON.stringify(meta)} -->`;
+      }
+
+      function parseMetaFromHtml(htmlText) {
+        const m = htmlText.match(/<!--\\s*post-meta:\\s*({[\\s\\S]*?})\\s*-->/);
+        if (!m) return null;
+        try {
+          return JSON.parse(m[1]);
+        } catch {
+          return null;
+        }
+      }
+
+      // -------- File System Access --------
+      let repoDir = null; // DirectoryHandle
+
+      function supportsFS() {
+        return !!window.showDirectoryPicker;
+      }
+
+      async function getFileText(fileHandle) {
+        const f = await fileHandle.getFile();
+        return await f.text();
+      }
+
+      async function writeTextFile(dirHandle, pathParts, content) {
+        let dir = dirHandle;
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          dir = await dir.getDirectoryHandle(pathParts[i], { create: true });
+        }
+        const fileHandle = await dir.getFileHandle(pathParts[pathParts.length - 1], { create: true });
+        const w = await fileHandle.createWritable();
+        await w.write(content);
+        await w.close();
+        return fileHandle;
+      }
+
+      async function listPosts(dirHandle) {
+        const postsDir = await dirHandle.getDirectoryHandle("posts", { create: true });
+        const posts = [];
+        for await (const [name, handle] of postsDir.entries()) {
+          if (handle.kind !== "file") continue;
+          if (!name.toLowerCase().endsWith(".html")) continue;
+          if (name.toLowerCase() === "index.html") continue;
+          posts.push({ name, handle });
+        }
+        posts.sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
+        return posts;
+      }
+
+      async function loadPostIntoEditor(fileName, htmlText) {
+        const meta = parseMetaFromHtml(htmlText) || {};
+        $("title").value = meta.title || "";
+        $("date").value = meta.date || todayISO();
+        $("slug").value = fileName.replace(/\\.html$/i, "");
+        $("tags").value = (meta.tags || []).join(", ");
+        $("cats").value = (meta.categories || []).join(", ");
+
+        const bodyMatch = htmlText.match(/<div class="content">([\\s\\S]*?)<\\/div>\\s*<div class="statusbar/);
+        if (bodyMatch) {
+          // We store the post content inside a div.post-body within the window content.
+          const inner = bodyMatch[1];
+          const contentMatch = inner.match(/<div class="post-body" id="postBody">([\\s\\S]*?)<\\/div>/);
+          $("editor").innerHTML = contentMatch ? contentMatch[1] : "";
+        } else {
+          $("editor").innerHTML = "";
+        }
+      }
+
+      function buildPostHtml(meta, innerHtml) {
+        const fileBase = meta.slug;
+        const title = meta.title || fileBase;
+        const tags = meta.tags || [];
+        const cats = meta.categories || [];
+        const date = meta.date || todayISO();
+
+        const tagLinks = tags
+          .map((t) => {
+            const s = pageSlug(t);
+            return `<a class="tag" href="/tags/${encodePathSegment(s)}.html">${escHtml(t)}</a>`;
+          })
+          .join(" ");
+        const catLinks = cats
+          .map((c) => {
+            const s = pageSlug(c);
+            return `<a class="cat" href="/categories/${encodePathSegment(s)}.html">${escHtml(c)}</a>`;
+          })
+          .join(" ");
+
+        return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escHtml(title)}</title>
+    <link rel="stylesheet" href="/assets/win98.css" />
+  </head>
+  <body>
+    <div class="desk">
+      <div class="window bevel">
+        <div class="titlebar">
+          <span>${escHtml(title)}</span>
+          <span class="spacer"></span>
+          <span class="sysbtns">
+            <span class="sysbtn bevel">_</span>
+            <span class="sysbtn bevel">□</span>
+            <span class="sysbtn bevel">×</span>
+          </span>
+        </div>
+        <div class="content">
+          ${metaBlock({ ...meta, title, date, slug: fileBase, tags, categories: cats })}
+          <p>
+            <a href="/index.html">时间轴</a> · <span class="mono">${escHtml(date)}</span>
+          </p>
+          <p>${tagLinks || ""}</p>
+          <p>${catLinks || ""}</p>
+          <hr />
+          <div class="post-body" id="postBody">${innerHtml || ""}</div>
+        </div>
+        <div class="statusbar bevel-inset">
+          <span class="mono">/posts/${escHtml(fileBase)}.html</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="l2d" class="l2d-mount"></div>
+    <div class="l2d-controls">
+      <button id="l2d-toggle" class="btn bevel">Live2D</button>
+    </div>
+    <script src="/assets/live2d-c2.js"></script>
+  </body>
+</html>`;
+      }
+
+      function buildListIndexHtml(kind, title, items) {
+        // items: [{label, href, count}]
+        const list = items.length
+          ? `<ul>${items
+              .map(
+                (it) =>
+                  `<li><a href="${it.href}">${escHtml(it.label)}</a> <span class="mono">(${it.count})</span></li>`
+              )
+              .join("")}</ul>`
+          : `<p class="mono">（暂无${kind}。）</p>`;
+
+        const id = kind === "标签" ? "tags" : "categories";
+        const baseHref = kind === "标签" ? "/tags/index.html" : "/categories/index.html";
+        return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escHtml(title)}</title>
+    <link rel="stylesheet" href="/assets/win98.css" />
+  </head>
+  <body>
+    <div class="desk">
+      <div class="window bevel">
+        <div class="titlebar">
+          <span>${escHtml(title)}</span>
+          <span class="spacer"></span>
+          <span class="sysbtns">
+            <span class="sysbtn bevel">_</span>
+            <span class="sysbtn bevel">□</span>
+            <span class="sysbtn bevel">×</span>
+          </span>
+        </div>
+        <div class="content">
+          <p><a href="/index.html">时间轴</a> · <a href="${baseHref}">${escHtml(kind)}</a></p>
+          <hr />
+          <div id="${id}">
+            ${list}
+          </div>
+        </div>
+        <div class="statusbar bevel-inset">
+          <span class="mono">Auto-generated.</span>
+        </div>
+      </div>
+    </div>
+    <div id="l2d" class="l2d-mount"></div>
+    <div class="l2d-controls">
+      <button id="l2d-toggle" class="btn bevel">Live2D</button>
+    </div>
+    <script src="/assets/live2d-c2.js"></script>
+  </body>
+</html>`;
+      }
+
+      function buildTimelineHtml(posts) {
+        // posts: [{title,date,slug}]
+        const list = posts.length
+          ? `<ul>${posts
+              .map((p) => {
+                const href = `/posts/${encodePathSegment(p.slug)}.html`;
+                return `<li><span class="mono">${escHtml(p.date || "")}</span> · <a href="${href}">${escHtml(
+                  p.title || p.slug
+                )}</a></li>`;
+              })
+              .join("")}</ul>`
+          : `<p class="mono">（暂无文章。用本地编辑器发布后会自动生成列表。）</p>`;
+
+        return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>时间轴</title>
+    <link rel="stylesheet" href="/assets/win98.css" />
+  </head>
+  <body>
+    <div class="desk">
+      <div class="window bevel">
+        <div class="titlebar">
+          <span>My Blog</span>
+          <span class="spacer"></span>
+          <span class="sysbtns">
+            <span class="sysbtn bevel">_</span>
+            <span class="sysbtn bevel">□</span>
+            <span class="sysbtn bevel">×</span>
+          </span>
+        </div>
+        <div class="content">
+          <p>
+            <a href="/index.html">时间轴</a> · <a href="/tags/index.html">标签</a> ·
+            <a href="/categories/index.html">分类</a>
+          </p>
+          <hr />
+          <div id="timeline">
+            ${list}
+          </div>
+        </div>
+        <div class="statusbar bevel-inset">
+          <span class="mono">Powered by pure HTML.</span>
+        </div>
+      </div>
+    </div>
+    <div id="l2d" class="l2d-mount"></div>
+    <div class="l2d-controls">
+      <button id="l2d-toggle" class="btn bevel">Live2D</button>
+    </div>
+    <script src="/assets/live2d-c2.js"></script>
+  </body>
+</html>`;
+      }
+
+      async function rebuildIndexes(dirHandle) {
+        const posts = await listPosts(dirHandle);
+        const parsed = [];
+        const tagMap = new Map(); // tag -> posts[]
+        const catMap = new Map();
+
+        for (const p of posts) {
+          const html = await getFileText(p.handle);
+          const meta = parseMetaFromHtml(html);
+          if (!meta || !meta.slug) continue;
+          parsed.push(meta);
+
+          (meta.tags || []).forEach((t) => {
+            if (!tagMap.has(t)) tagMap.set(t, []);
+            tagMap.get(t).push(meta);
+          });
+          (meta.categories || []).forEach((c) => {
+            if (!catMap.has(c)) catMap.set(c, []);
+            catMap.get(c).push(meta);
+          });
+        }
+
+        parsed.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(a.slug).localeCompare(String(b.slug)));
+
+        const indexHtml = buildTimelineHtml(parsed);
+        await writeTextFile(dirHandle, ["index.html"], indexHtml);
+
+        // Tags
+        const allTags = Array.from(tagMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+        const tagIndexItems = allTags.map((t) => ({
+          label: t,
+          href: `/tags/${encodePathSegment(pageSlug(t))}.html`,
+          count: tagMap.get(t).length,
+        }));
+        await writeTextFile(dirHandle, ["tags", "index.html"], buildListIndexHtml("标签", "标签", tagIndexItems));
+        for (const t of allTags) {
+          const metas = tagMap.get(t).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+          const items = metas.map((m) => ({
+            label: `${m.date || ""} · ${m.title || m.slug}`,
+            href: `/posts/${encodePathSegment(m.slug)}.html`,
+            count: "",
+          }));
+          const list = items.length
+            ? `<ul>${items
+                .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
+                .join("")}</ul>`
+            : `<p class="mono">（暂无文章。）</p>`;
+          const html = buildListIndexHtml("标签", `标签：${t}`, []);
+          const finalHtml = html.replace(/<div id="tags">[\\s\\S]*?<\\/div>/, `<div id="tags">${list}</div>`);
+          await writeTextFile(dirHandle, ["tags", `${pageSlug(t)}.html`], finalHtml);
+        }
+
+        // Categories
+        const allCats = Array.from(catMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+        const catIndexItems = allCats.map((c) => ({
+          label: c,
+          href: `/categories/${encodePathSegment(pageSlug(c))}.html`,
+          count: catMap.get(c).length,
+        }));
+        await writeTextFile(dirHandle, ["categories", "index.html"], buildListIndexHtml("分类", "分类", catIndexItems));
+        for (const c of allCats) {
+          const metas = catMap.get(c).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+          const items = metas.map((m) => ({
+            label: `${m.date || ""} · ${m.title || m.slug}`,
+            href: `/posts/${encodePathSegment(m.slug)}.html`,
+            count: "",
+          }));
+          const list = items.length
+            ? `<ul>${items
+                .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
+                .join("")}</ul>`
+            : `<p class="mono">（暂无文章。）</p>`;
+          const html = buildListIndexHtml("分类", `分类：${c}`, []);
+          const finalHtml = html.replace(/<div id="categories">[\\s\\S]*?<\\/div>/, `<div id="categories">${list}</div>`);
+          await writeTextFile(dirHandle, ["categories", `${pageSlug(c)}.html`], finalHtml);
+        }
+      }
+
+      // -------- UI wiring --------
+      function setConnState(s) {
+        $("connState").textContent = s;
+      }
+
+      function markSaved(s) {
+        $("saveState").textContent = s;
+      }
+
+      function wireFormatting() {
+        document.querySelectorAll("[data-cmd]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const cmd = btn.getAttribute("data-cmd");
+            document.execCommand(cmd, false, null);
+            $("editor").focus();
+          });
+        });
+
+        $("quote").addEventListener("click", () => {
+          document.execCommand("formatBlock", false, "blockquote");
+          $("editor").focus();
+        });
+
+        $("hr").addEventListener("click", () => {
+          document.execCommand("insertHorizontalRule", false, null);
+          $("editor").focus();
+        });
+
+        $("link").addEventListener("click", () => {
+          const url = prompt("链接 URL：");
+          if (!url) return;
+          document.execCommand("createLink", false, url);
+          $("editor").focus();
+        });
+
+        $("size").addEventListener("change", () => {
+          const cls = $("size").value;
+          $("size").value = "";
+          if (!cls) return;
+
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) return;
+          const range = sel.getRangeAt(0);
+          if (range.collapsed) return;
+
+          const span = document.createElement("span");
+          span.className = cls;
+          range.surroundContents(span);
+          $("editor").focus();
+        });
+
+        $("clearFmt").addEventListener("click", () => {
+          document.execCommand("removeFormat", false, null);
+          $("editor").focus();
+        });
+      }
+
+      function wireMetaAutoSlug() {
+        $("title").addEventListener("input", () => {
+          if ($("slug").dataset.touched === "1") return;
+          $("slug").value = safeFileBase($("title").value);
+        });
+        $("slug").addEventListener("input", () => {
+          $("slug").dataset.touched = "1";
+        });
+      }
+
+      async function refreshExistingList() {
+        $("loadExisting").innerHTML = `<option value="">（加载已有文章…）</option>`;
+        if (!repoDir) return;
+        const posts = await listPosts(repoDir);
+        for (const p of posts) {
+          const opt = document.createElement("option");
+          opt.value = p.name;
+          opt.textContent = p.name;
+          $("loadExisting").appendChild(opt);
+        }
+      }
+
+      async function connectRepo() {
+        if (!supportsFS()) {
+          alert("当前浏览器不支持 File System Access API。只能用“下载生成文件”。");
+          return;
+        }
+        repoDir = await window.showDirectoryPicker({ mode: "readwrite" });
+        setConnState("已连接（可写入）");
+        await refreshExistingList();
+      }
+
+      async function loadExisting(name) {
+        if (!repoDir || !name) return;
+        const postsDir = await repoDir.getDirectoryHandle("posts", { create: true });
+        const fh = await postsDir.getFileHandle(name);
+        const html = await getFileText(fh);
+        await loadPostIntoEditor(name, html);
+        markSaved(`已加载：${name}`);
+      }
+
+      function gatherMeta() {
+        const title = $("title").value.trim();
+        const slug = safeFileBase($("slug").value || title);
+        const date = $("date").value || todayISO();
+        const tags = splitList($("tags").value);
+        const categories = splitList($("cats").value);
+        return { title, slug, date, tags, categories };
+      }
+
+      async function doPublish(writeToRepo) {
+        const meta = gatherMeta();
+        if (!meta.title) {
+          alert("请先填写标题。");
+          return;
+        }
+        const inner = $("editor").innerHTML;
+        const postHtml = buildPostHtml(meta, inner);
+        const postPath = `posts/${meta.slug}.html`;
+
+        if (writeToRepo) {
+          if (!repoDir) {
+            alert("请先连接仓库目录。");
+            return;
+          }
+          await writeTextFile(repoDir, ["posts", `${meta.slug}.html`], postHtml);
+          await rebuildIndexes(repoDir);
+          await refreshExistingList();
+          markSaved(`已发布：/${postPath}`);
+          return;
+        }
+
+        // Fallback: download files
+        const files = new Map();
+        files.set(postPath, postHtml);
+        // index/tags/categories require reading existing posts; without repo connection, we only download the post.
+        downloadFilesAsZipless(files);
+        markSaved(`已下载：/${postPath}`);
+      }
+
+      function downloadFilesAsZipless(filesMap) {
+        // Minimal download helper: each file becomes a download (no zip).
+        for (const [name, content] of filesMap.entries()) {
+          const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = name.split("/").pop();
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }
+        alert("已触发下载（如需自动更新索引页，请使用“连接仓库目录”后发布）。");
+      }
+
+      function previewHtml() {
+        const meta = gatherMeta();
+        const inner = $("editor").innerHTML;
+        const html = buildPostHtml(meta, inner);
+        const w = window.open("", "_blank");
+        if (!w) return;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      }
+
+      function init() {
+        $("date").value = todayISO();
+        wireFormatting();
+        wireMetaAutoSlug();
+
+        $("connect").addEventListener("click", connectRepo);
+        $("refresh").addEventListener("click", refreshExistingList);
+        $("loadExisting").addEventListener("change", async () => {
+          const v = $("loadExisting").value;
+          if (!v) return;
+          await loadExisting(v);
+        });
+
+        $("publish").addEventListener("click", async () => {
+          try {
+            await doPublish(true);
+          } catch (e) {
+            console.error(e);
+            alert("发布失败（请看控制台）。");
+          }
+        });
+        $("download").addEventListener("click", async () => {
+          try {
+            await doPublish(false);
+          } catch (e) {
+            console.error(e);
+            alert("生成失败（请看控制台）。");
+          }
+        });
+        $("preview").addEventListener("click", previewHtml);
+
+        if (!supportsFS()) {
+          setConnState("浏览器不支持（仅下载）");
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
