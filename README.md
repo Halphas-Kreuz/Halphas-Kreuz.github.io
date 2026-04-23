@@ -10,11 +10,9 @@
 The publisher writes:
 
 - Posts: `posts/<标题>.html`
-- Timeline: `index.html`
-- Tags: `tags/index.html` + `tags/<标签>.html`
-- Categories: `categories/index.html` + `categories/<分类>.html`
+- Timeline: `home.html`
+- Left nav: `nav.html` (posts list)
 
 ## Live2D (Cubism2)
 
 Put your model under `assets/your_model/` and configure `MODEL_JSON` in `assets/live2d-c2.js`.
-

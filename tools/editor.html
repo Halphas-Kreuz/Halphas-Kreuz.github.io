@@ -5,7 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>本地发布器（Win98 Blog）</title>
     <meta name="robots" content="noindex,nofollow" />
+    <!-- Main theme (external). If it fails to load, the inline fallback below keeps it usable. -->
     <link rel="stylesheet" href="../assets/win98.css" />
+    <style type="text/css">
+      /* Fallback styling (in case the external CSS path is wrong) */
+      body {
+        margin: 0;
+        background: #c0c0c0;
+        color: #000;
+        font-family: Tahoma, Verdana, Arial, "MS Sans Serif", sans-serif;
+        font-size: 14px;
+      }
+
+      .desk {
+        padding: 16px;
+      }
+
+      .window {
+        background: #c0c0c0;
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .bevel {
+        border-top: 2px solid #fff;
+        border-left: 2px solid #fff;
+        border-right: 2px solid #000;
+        border-bottom: 2px solid #000;
+      }
+
+      .bevel-inset {
+        border-top: 2px solid #000;
+        border-left: 2px solid #000;
+        border-right: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+      }
+
+      .titlebar {
+        background: #000080;
+        color: #fff;
+        font-weight: bold;
+        padding: 4px 8px;
+      }
+
+      .content {
+        padding: 10px;
+      }
+
+      .btn {
+        background: #c0c0c0;
+        color: #000;
+        padding: 4px 6px;
+        cursor: pointer;
+      }
+    </style>
     <style>
       .grid {
         display: grid;
@@ -304,9 +357,7 @@
             <b>${escHtml(title)}</b><br />
             <span class="nav">
               <a href="${root}home.html">时间轴</a><span class="sep">|</span>
-              <a href="${root}tags/index.html">标签</a><span class="sep">|</span>
-              <a href="${root}categories/index.html">分类</a>
-              <span class="sep">|</span>
+              <a href="${root}home.html#filters">筛选</a><span class="sep">|</span>
               <span class="mono">${escHtml(date)}</span>
             </span>
           </div>
@@ -338,7 +389,7 @@
         s.src = "${root}assets/live2d-c2.js";
         head.appendChild(s);
       })();
-    </script>
+    ${"</scr" + "ipt>"}
   </body>
 </html>`;
       }
@@ -401,7 +452,7 @@
         s.src = "${rootPrefix}assets/live2d-c2.js";
         head.appendChild(s);
       })();
-    </script>
+    ${"</scr" + "ipt>"}
   </body>
 </html>`;
       }
@@ -412,12 +463,30 @@
           ? `<ul>${posts
               .map((p) => {
                 const href = `posts/${encodePathSegment(p.slug)}.html`;
+                const tagMarks = (p.tags || []).map((t) => `[${escHtml(t)}]`).join("");
+                const catMarks = (p.categories || []).map((c) => `[${escHtml(c)}]`).join("");
                 return `<li><span class="mono">${escHtml(p.date || "")}</span> · <a href="${href}">${escHtml(
                   p.title || p.slug
-                )}</a></li>`;
+                )}</a> <span class="mono">${tagMarks}${catMarks}</span></li>`;
               })
               .join("")}</ul>`
           : `<p class="mono">（暂无文章。用本地编辑器发布后会自动生成列表。）</p>`;
+
+        // Build filter option lists
+        const tagSet = new Set();
+        const catSet = new Set();
+        posts.forEach((p) => {
+          (p.tags || []).forEach((t) => tagSet.add(t));
+          (p.categories || []).forEach((c) => catSet.add(c));
+        });
+        const tags = Array.from(tagSet).sort((a, b) => String(a).localeCompare(String(b), "zh-Hans-CN"));
+        const cats = Array.from(catSet).sort((a, b) => String(a).localeCompare(String(b), "zh-Hans-CN"));
+        const tagOpts = [`<option value="">（全部）</option>`]
+          .concat(tags.map((t) => `<option value="${escHtml(t)}">${escHtml(t)}</option>`))
+          .join("");
+        const catOpts = [`<option value="">（全部）</option>`]
+          .concat(cats.map((c) => `<option value="${escHtml(c)}">${escHtml(c)}</option>`))
+          .join("");
 
         return `<!doctype html>
 <html lang="zh-CN">
@@ -435,8 +504,7 @@
             <b>My Blog</b><br />
             <span class="nav">
               <a href="home.html">时间轴</a><span class="sep">|</span>
-              <a href="tags/index.html">标签</a><span class="sep">|</span>
-              <a href="categories/index.html">分类</a>
+              <a href="#filters">筛选</a>
             </span>
           </div>
         </div>
@@ -446,6 +514,21 @@
         <div class="box-body">
           <b>时间轴</b>
           <hr />
+          <a name="filters"></a>
+          <form id="filtersForm" action="home.html" method="get">
+            <span class="mono">筛选：</span>
+            标签
+            <select name="tag" id="tagSel">
+              ${tagOpts}
+            </select>
+            分类
+            <select name="cat" id="catSel">
+              ${catOpts}
+            </select>
+            <input type="submit" value="应用" />
+            <a href="home.html" class="mono">清除</a>
+          </form>
+          <hr />
           <div id="timeline">
             ${list}
           </div>
@@ -454,6 +537,43 @@
 
       <p class="mono">纯 HTML。Live2D 仅在现代浏览器加载。</p>
     </div>
+
+    <script type="text/javascript">
+      (function () {
+        if (!document.getElementById) return;
+        var list = document.getElementById("timeline");
+        if (!list || !list.getElementsByTagName) return;
+
+        function getParam(name) {
+          var qs = window.location.search || "";
+          if (!qs) return "";
+          qs = qs.replace(/^\?/, "");
+          var parts = qs.split("&");
+          var i;
+          for (i = 0; i < parts.length; i++) {
+            var kv = parts[i].split("=");
+            if (kv[0] === name) return decodeURIComponent((kv[1] || "").replace(/\+/g, " "));
+          }
+          return "";
+        }
+
+        var tag = getParam("tag");
+        var cat = getParam("cat");
+        if (tag && document.getElementById("tagSel")) document.getElementById("tagSel").value = tag;
+        if (cat && document.getElementById("catSel")) document.getElementById("catSel").value = cat;
+        if (!tag && !cat) return;
+
+        var items = list.getElementsByTagName("li");
+        var j;
+        for (j = 0; j < items.length; j++) {
+          var t = items[j].innerHTML || "";
+          var ok = true;
+          if (tag && t.indexOf("[" + tag + "]") === -1) ok = false;
+          if (cat && t.indexOf("[" + cat + "]") === -1) ok = false;
+          items[j].style.display = ok ? "" : "none";
+        }
+      })();
+    ${"</scr" + "ipt>"}
 
     <div id="l2d"></div>
     <script type="text/javascript">
@@ -467,7 +587,7 @@
         s.src = "assets/live2d-c2.js";
         head.appendChild(s);
       })();
-    </script>
+    ${"</scr" + "ipt>"}
   </body>
 </html>`;
       }
@@ -475,23 +595,12 @@
       async function rebuildIndexes(dirHandle) {
         const posts = await listPosts(dirHandle);
         const parsed = [];
-        const tagMap = new Map(); // tag -> posts[]
-        const catMap = new Map();
 
         for (const p of posts) {
           const html = await getFileText(p.handle);
           const meta = parseMetaFromHtml(html);
           if (!meta || !meta.slug) continue;
           parsed.push(meta);
-
-          (meta.tags || []).forEach((t) => {
-            if (!tagMap.has(t)) tagMap.set(t, []);
-            tagMap.get(t).push(meta);
-          });
-          (meta.categories || []).forEach((c) => {
-            if (!catMap.has(c)) catMap.set(c, []);
-            catMap.get(c).push(meta);
-          });
         }
 
         parsed.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(a.slug).localeCompare(String(b.slug)));
@@ -499,55 +608,79 @@
         const homeHtml = buildTimelineHtml(parsed);
         await writeTextFile(dirHandle, ["home.html"], homeHtml);
 
-        // Tags
-        const allTags = Array.from(tagMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-        const tagIndexItems = allTags.map((t) => ({
-          label: t,
-          href: `${encodePathSegment(pageSlug(t))}.html`,
-          count: tagMap.get(t).length,
-        }));
-        await writeTextFile(dirHandle, ["tags", "index.html"], buildListIndexHtml("标签", "标签", tagIndexItems, "../"));
-        for (const t of allTags) {
-          const metas = tagMap.get(t).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-          const items = metas.map((m) => ({
-            label: `${m.date || ""} · ${m.title || m.slug}`,
-            href: `../posts/${encodePathSegment(m.slug)}.html`,
-            count: "",
-          }));
-          const list = items.length
-            ? `<ul>${items
-                .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
-                .join("")}</ul>`
-            : `<p class="mono">（暂无文章。）</p>`;
-          const html = buildListIndexHtml("标签", `标签：${t}`, [], "../");
-          const finalHtml = html.replace(/<div id="tags">[\\s\\S]*?<\\/div>/, `<div id="tags">${list}</div>`);
-          await writeTextFile(dirHandle, ["tags", `${pageSlug(t)}.html`], finalHtml);
+        // Left nav (directory tree)
+        await writeTextFile(dirHandle, ["nav.html"], buildNavHtml(parsed));
+      }
+
+      function buildNavHtml(posts) {
+        // Keep HTML/CSS/JS very old-browser friendly.
+        // posts: meta objects with {slug,title,date}
+        var rows = "";
+        var i;
+        for (i = 0; i < posts.length; i++) {
+          var p = posts[i];
+          var name = (p && (p.title || p.slug)) || "post";
+          var slug = (p && p.slug) || "post";
+          rows +=
+            '<li><table class="treerow" cellspacing="0" cellpadding="0" border="0"><tr>' +
+            '<td class="treeprefix mono">' +
+            (i === posts.length - 1 ? "`--" : "|--") +
+            "</td>" +
+            '<td class="treelabel"><span class="mono">[FILE]</span> ' +
+            '<a href="posts/' +
+            escHtml(encodePathSegment(slug)) +
+            '.html" target="main">' +
+            escHtml(name) +
+            "</a></td></tr></table></li>";
         }
 
-        // Categories
-        const allCats = Array.from(catMap.keys()).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-        const catIndexItems = allCats.map((c) => ({
-          label: c,
-          href: `${encodePathSegment(pageSlug(c))}.html`,
-          count: catMap.get(c).length,
-        }));
-        await writeTextFile(dirHandle, ["categories", "index.html"], buildListIndexHtml("分类", "分类", catIndexItems, "../"));
-        for (const c of allCats) {
-          const metas = catMap.get(c).slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-          const items = metas.map((m) => ({
-            label: `${m.date || ""} · ${m.title || m.slug}`,
-            href: `../posts/${encodePathSegment(m.slug)}.html`,
-            count: "",
-          }));
-          const list = items.length
-            ? `<ul>${items
-                .map((it) => `<li><a href="${it.href}">${escHtml(it.label)}</a></li>`)
-                .join("")}</ul>`
-            : `<p class="mono">（暂无文章。）</p>`;
-          const html = buildListIndexHtml("分类", `分类：${c}`, [], "../");
-          const finalHtml = html.replace(/<div id="categories">[\\s\\S]*?<\\/div>/, `<div id="categories">${list}</div>`);
-          await writeTextFile(dirHandle, ["categories", `${pageSlug(c)}.html`], finalHtml);
-        }
+        return (
+          '<!doctype html>\n' +
+          '<html lang="zh-CN">\n' +
+          "  <head>\n" +
+          '    <meta charset="utf-8" />\n' +
+          '    <meta name="viewport" content="width=device-width, initial-scale=1" />\n' +
+          "    <title>导航</title>\n" +
+          '    <link rel="stylesheet" href="assets/retro.css" />\n' +
+          '    <style type="text/css">\n' +
+          "      .navbox { width: auto; margin: 0; padding: 6px; }\n" +
+          "      .page.navbox { width: auto; margin: 0; padding: 6px; }\n" +
+          "      .twisty { cursor: pointer; font-family: \"Courier New\", Courier, monospace; padding-right: 6px; }\n" +
+          "    </style>\n" +
+          "  </head>\n" +
+          "  <body>\n" +
+          '    <div class="page navbox">\n' +
+          '      <div class="navplain">\n' +
+          "        <b>目录</b>\n" +
+          "        <hr />\n" +
+          '        <div class="tree">\n' +
+          "          <ul>\n" +
+          "            <li>\n" +
+          '              <span class="twisty" onclick="t(\'f1\');return false;">[+]</span> <span class="mono">[DIR]</span>\n' +
+          '              <a href="home.html" target="main">My Blog</a>\n' +
+          '              <ul id="f1" style="display: none;">\n' +
+          '                <li><table class="treerow" cellspacing="0" cellpadding="0" border="0"><tr><td class="treeprefix mono">|--</td><td class="treelabel"><span class="mono">[FILE]</span> <a href="home.html" target="main">时间轴（含筛选）</a></td></tr></table></li>\n' +
+          '                <li>\n' +
+          '                  <table class="treerow" cellspacing="0" cellpadding="0" border="0"><tr><td class="treeprefix mono">`--</td><td class="treelabel"><span class="mono">[DIR]</span> <span class="mono">posts</span></td></tr></table>\n' +
+          '                  <ul style="margin-left: 18px;">\n' +
+          (rows || '                    <li><span class="mono">（暂无文章）</span></li>\n') +
+          "                  </ul>\n" +
+          "                </li>\n" +
+          "              </ul>\n" +
+          "            </li>\n" +
+          "          </ul>\n" +
+          "          <hr />\n" +
+          '          <span class="mono">提示：拖动中间分隔条可调整宽度</span>\n' +
+          "        </div>\n" +
+          "      </div>\n" +
+          "    </div>\n" +
+          '    <script type="text/javascript">\n' +
+          "      function t(id) { var el = document.getElementById(id); if (!el) return; el.style.display = (el.style.display === \"none\") ? \"block\" : \"none\"; }\n" +
+          "    </scr" +
+          "ipt>\n" +
+          "  </body>\n" +
+          "</html>\n"
+        );
       }
 
       // -------- UI wiring --------
@@ -717,6 +850,26 @@
         $("date").value = todayISO();
         wireFormatting();
         wireMetaAutoSlug();
+
+        // Safety: this publisher is meant to be used locally.
+        // When opened from a public GitHub Pages URL, it should do nothing.
+        // (Even if someone opens it online, they still cannot push to your repo without git access,
+        // but disabling avoids confusion.)
+        try {
+          var host = String(window.location.hostname || "");
+          var proto = String(window.location.protocol || "");
+          var isLocal =
+            proto === "file:" ||
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "" ||
+            host.indexOf(".local") !== -1;
+          if (!isLocal) {
+            $("connect").disabled = true;
+            $("publish").disabled = true;
+            setConnState("已锁定：请在本地打开此页面");
+          }
+        } catch {}
 
         $("connect").addEventListener("click", connectRepo);
         $("refresh").addEventListener("click", refreshExistingList);

@@ -14,8 +14,7 @@
             <b>My Blog</b><br />
             <span class="nav">
               <a href="home.html">时间轴</a><span class="sep">|</span>
-              <a href="tags/index.html">标签</a><span class="sep">|</span>
-              <a href="categories/index.html">分类</a>
+              <a href="#filters">筛选</a>
             </span>
           </div>
         </div>
@@ -25,14 +24,75 @@
         <div class="box-body">
           <b>时间轴</b>
           <hr />
+          <a name="filters"></a>
+          <form id="filtersForm" action="home.html" method="get">
+            <span class="mono">筛选：</span>
+            标签
+            <select name="tag" id="tagSel">
+              <option value="">（全部）</option>
+              <option value="测试">测试</option>
+            </select>
+            分类
+            <select name="cat" id="catSel">
+              <option value="">（全部）</option>
+              <option value="日志">日志</option>
+            </select>
+            <input type="submit" value="应用" />
+            <a href="home.html" class="mono">清除</a>
+          </form>
+          <hr />
           <div id="timeline">
-            <p class="mono">（暂无文章。用本地编辑器发布后会自动生成列表。）</p>
+            <ul id="timelineList">
+              <li>
+                <span class="mono">2026-04-23</span> ·
+                <a href="posts/23-04-2026.html">测试日志（23-04-2026）</a>
+                <span class="mono">[测试][日志]</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
 
       <p class="mono">纯 HTML。Live2D 仅在现代浏览器加载。</p>
     </div>
+
+    <script type="text/javascript">
+      (function () {
+        // Optional: apply filters without regenerating the page (progressive).
+        if (!document.getElementById) return;
+        var list = document.getElementById("timelineList");
+        if (!list || !list.getElementsByTagName) return;
+
+        function getParam(name) {
+          var qs = window.location.search || "";
+          if (!qs) return "";
+          qs = qs.replace(/^\?/, "");
+          var parts = qs.split("&");
+          var i;
+          for (i = 0; i < parts.length; i++) {
+            var kv = parts[i].split("=");
+            if (kv[0] === name) return decodeURIComponent((kv[1] || "").replace(/\+/g, " "));
+          }
+          return "";
+        }
+
+        var tag = getParam("tag");
+        var cat = getParam("cat");
+        if (tag && document.getElementById("tagSel")) document.getElementById("tagSel").value = tag;
+        if (cat && document.getElementById("catSel")) document.getElementById("catSel").value = cat;
+        if (!tag && !cat) return;
+
+        var items = list.getElementsByTagName("li");
+        var j;
+        for (j = 0; j < items.length; j++) {
+          var t = items[j].innerHTML || "";
+          var ok = true;
+          if (tag && t.indexOf("[" + tag + "]") === -1) ok = false;
+          if (cat && t.indexOf("[" + cat + "]") === -1) ok = false;
+          items[j].style.display = ok ? "" : "none";
+        }
+      })();
+    </script>
 
     <div id="l2d"></div>
     <script type="text/javascript">
